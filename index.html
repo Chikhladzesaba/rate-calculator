@@ -80,14 +80,13 @@
     .result h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--muted); }
     .range { font-size: 32px; font-weight: 600; color: var(--accent); line-height: 1.15; }
     .result.empty .range { font-size: 17px; font-weight: 400; color: var(--muted); }
-    .bars { display: flex; flex-direction: column; gap: 10px; }
-    .bar-row { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: center; font-size: 14px; }
-    .bar-row span:first-child { color: #3d3f48; }
-    .track { position: relative; height: 28px; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    .fill { position: absolute; inset: 0 auto 0 0; background: rgba(0, 106, 255, .14); border-right: 2px solid var(--accent); }
-    .track b { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 600; color: var(--ink); }
-    .track.off .fill { display: none; }
-    .track.off b { font-weight: 400; color: var(--muted); }
+    .prices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .price-box { background: #ffffff; border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+    .price-box span { font-size: 14px; color: var(--muted); }
+    .price-box b { font-size: 24px; font-weight: 600; color: var(--ink); line-height: 1.15; }
+    .price-box.main { border: 1.5px solid var(--accent); }
+    .price-box.main b { color: var(--accent); font-size: 30px; }
+    .prices:not([hidden]) + .range { display: none; }
     .advice { margin: 0; font-size: 15px; line-height: 1.5; color: #3d3f48; }
 
     /* "Where do I find this?" boxes: open and close without JavaScript */
@@ -223,14 +222,20 @@
 
     <!-- ===== Result ===== -->
     <section class="result empty" id="result" aria-live="polite">
-      <h2>Your price range for one sponsored video</h2>
-      <div class="range" id="range">Fill in at least one of the three.</div>
-      <div class="bars" id="bars" hidden>
-        <div class="bar-row"><span>1 · Effort</span><div class="track" id="t-effort"><div class="fill"></div><b></b></div></div>
-        <div class="bar-row"><span>2 · Past deal</span><div class="track" id="t-past"><div class="fill"></div><b></b></div></div>
-        <div class="bar-row"><span>3 · Audience</span><div class="track" id="t-audience"><div class="fill"></div><b></b></div></div>
+      <h2>Your price for one sponsored video</h2>
+      <div class="prices" id="prices" hidden>
+        <div class="price-box main">
+          <span>Ask for</span>
+          <b id="ask"></b>
+        </div>
+        <div class="price-box">
+          <span>Don't accept less than</span>
+          <b id="floor"></b>
+        </div>
       </div>
+      <div class="range" id="range">Fill in your effort (step 1) to start.</div>
       <p class="advice" id="advice"></p>
+      <p class="advice" id="compare"></p>
       <details class="learn">
         <summary>What else can I charge for?</summary>
         <div class="body">
@@ -322,35 +327,37 @@
         $("out-audience").textContent = "Fill in views and a rate, or a past deal with views.";
       }
 
-      // --- Result: range + bars ---
-      const results = { effort: effort, past: past, audience: audience };
-      const values = Object.values(results).filter((v) => v !== null);
-      const box = $("result");
-      if (!values.length) {
-        box.classList.add("empty");
-        $("range").textContent = "Fill in at least one of the three.";
-        $("bars").hidden = true;
+      // --- Result: effort is the floor, a bigger audience pushes the price up ---
+      if (effort === null) {
+        $("prices").hidden = true;
+        $("result").classList.add("empty");
+        $("range").textContent = "Fill in your effort (step 1) to start.";
         $("advice").textContent = "";
+        $("compare").textContent = "";
         return;
       }
-      box.classList.remove("empty");
-      const low = Math.min(...values), high = Math.max(...values);
-      $("range").textContent = values.length === 1 || low === high ? money(low) : money(low) + " – " + money(high);
-      $("bars").hidden = false;
-      Object.entries(results).forEach(([name, v]) => {
-        const t = $("t-" + name);
-        t.classList.toggle("off", v === null);
-        t.querySelector(".fill").style.width = v === null || !high ? "0" : Math.max(4, v / high * 100) + "%";
-        t.querySelector("b").textContent = v === null ? "not filled in" : money(v);
-      });
+      $("result").classList.remove("empty");
+      $("prices").hidden = false;
+      const ask = Math.max(effort, audience || 0, past || 0);
+      $("ask").textContent = money(ask);
+      $("floor").textContent = money(effort);
 
-      // Plain-language reading of the numbers
-      let tip = "";
-      if (values.length === 1) tip = "Fill in another way to compare. One number alone is easy to doubt.";
-      else if (effort !== null && high === effort && low < effort) tip = "Careful: another way comes out below your effort. Going lower means working at a loss.";
-      else if (effort !== null) tip = "Don't go below " + money(effort) + ", your effort price. Somewhere in this range is a price you can explain to a brand.";
-      else tip = "Somewhere in this range is a price you can explain to a brand. Add your effort (step 1) to know your lowest price.";
+      let tip;
+      if (past && ask === past && past > Math.max(effort, audience || 0)) tip = "Your last deal paid more than your other numbers, so ask for at least that again, unless this job is smaller.";
+      else if (audience === null) tip = "For now your price is your effort. Add your audience (step 3) to see if you can ask for more.";
+      else if (audience > effort) tip = "Your audience is worth more than your work costs, so ask for the audience price. A brand can check it: "
+        + count(views) + " views ÷ 1,000 × " + money(rate) + ".";
+      else tip = "Your audience alone would justify " + money(audience) + ". Ask for your effort price and explain the work behind it: idea, filming, editing.";
       $("advice").textContent = tip;
+
+      let cmp = "";
+      if (past && ask > past) {
+        const r = ask / past;
+        cmp = r >= 2
+          ? "That's " + (Math.round(r * 10) / 10) + "× your last deal (" + money(past) + "). Big jump: be ready to explain what changed."
+          : "That's " + Math.round((r - 1) * 100) + "% more than your last deal (" + money(past) + ").";
+      }
+      $("compare").textContent = cmp;
     }
 
     // Restore what the visitor typed last time, and save on every change
