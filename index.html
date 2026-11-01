@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rate Calculator</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%23006aff'/><text x='16' y='22' font-size='17' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'>%25</text></svg>">
-  <meta name="description" content="Check your sponsorship price three ways: your effort, your past deals and your audience. Free, no sign-up.">
+  <meta name="description" content="Check your sponsorship price three ways: your effort, your past deals and your audience now. Free, no sign-up.">
   <meta property="og:title" content="Rate Calculator | Price your sponsorships">
   <meta property="og:description" content="Check your price three ways (effort, past deals, audience) and reply to brands with confidence. Free, no sign-up.">
   <meta property="og:url" content="https://chikhladzesaba.github.io/rate-calculator/">
@@ -111,7 +111,7 @@
   <main class="app">
     <div>
       <h1>Rate <em>Calculator</em></h1>
-      <p class="intro">A brand asked for your price? Check it three ways: your effort, your past deals and your audience. Fill in what you know, skip the rest. Every number comes from you.</p>
+      <p class="intro">A brand asked for your price? Check it three ways: your effort, your past deals and your audience now. Fill in what you know, skip the rest. Every number comes from you.</p>
     </div>
 
     <div class="currency">
@@ -171,11 +171,11 @@
           <input id="past" inputmode="decimal" placeholder="e.g. 400" autocomplete="off">
         </div>
         <div class="field">
-          <label for="pastviews">Its views <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <label for="pastviews">Views of that video</label>
           <input id="pastviews" inputmode="numeric" placeholder="e.g. 20,000" autocomplete="off">
         </div>
       </div>
-      <p class="hint">Price for one sponsored video. Add its views and step 3 can use your real rate.</p>
+      <p class="hint">Price for one sponsored video, and how many views that video got.</p>
       <div class="way-out" id="out-past">No past deal? Skip this one.</div>
     </section>
 
@@ -184,21 +184,14 @@
       <div class="way-head">
         <span class="num">3</span>
         <div>
-          <h2>Your audience</h2>
-          <p>How a brand will see your price: what it pays per 1,000 people who watch.</p>
+          <h2>Your audience now</h2>
+          <p>Your views grew since that deal? Your price grows with them.</p>
         </div>
       </div>
-      <div class="two">
-        <div class="field">
-          <label for="views">Typical views per video</label>
-          <input id="views" inputmode="numeric" placeholder="e.g. 25,000" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="rate">Rate per 1,000 views</label>
-          <input id="rate" inputmode="decimal" placeholder="e.g. 20" autocomplete="off">
-        </div>
+      <div class="field">
+        <label for="views">Typical views per video now</label>
+        <input id="views" inputmode="numeric" placeholder="e.g. 40,000" autocomplete="off">
       </div>
-      <p class="hint" id="rate-hint">Your own rate, not a market average.</p>
       <details class="learn">
         <summary>How do I find my typical views?</summary>
         <div class="body">
@@ -210,14 +203,7 @@
           </ol>
         </div>
       </details>
-      <details class="learn">
-        <summary>Where does a rate per 1,000 views come from?</summary>
-        <div class="body">
-          <p>Best: from a past deal. Fill in its price and views in step 2 and leave the rate empty here. The tool works it out.</p>
-          <p>No deals yet? If you're in the YouTube Partner Program, YouTube Studio → Analytics → Revenue shows your <strong>RPM</strong>, what YouTube pays you per 1,000 views from ads. A sponsor usually pays more than that, so treat it as a minimum.</p>
-        </div>
-      </details>
-      <div class="way-out" id="out-audience">Fill in views and a rate, or a past deal with views.</div>
+      <div class="way-out" id="out-audience">Needs a past deal with its views (step 2).</div>
     </section>
 
     <!-- ===== Result ===== -->
@@ -235,7 +221,6 @@
       </div>
       <div class="range" id="range">Fill in your effort (step 1) to start.</div>
       <p class="advice" id="advice"></p>
-      <p class="advice" id="compare"></p>
       <details class="learn">
         <summary>What else can I charge for?</summary>
         <div class="body">
@@ -301,67 +286,55 @@
         $("out-effort").textContent = "Fill in hours and your hour's worth.";
       }
 
-      // --- 2. Past deal (and the rate it implies) ---
+      // --- 2. Past deal ---
       const past = readMoney($("past").value) || null;
       const pastViews = readCount($("pastviews").value);
-      const pastRate = past && pastViews ? Math.round(past / (pastViews / 1000) * 100) / 100 : null;
       if (past) {
         $("out-past").innerHTML = "Last time: <strong>" + money(past) + "</strong>"
-          + (pastRate ? " · that's " + money(pastRate) + " per 1,000 views" : "");
+          + (pastViews ? " for " + count(pastViews) + " views" : "");
       } else {
-        $("out-past").textContent = "No past deal? Skip this one.";
+        $("out-past").textContent = "No past deal? Skip steps 2 and 3. Your effort price is your price.";
       }
 
-      // --- 3. Audience: typical views ÷ 1,000 × rate (typed, or from the past deal) ---
+      // --- 3. Audience now: the past deal, scaled to today's views ---
       const views = readCount($("views").value);
-      const typedRate = readMoney($("rate").value) || null;
-      const rate = typedRate || pastRate;
-      $("rate-hint").textContent = !typedRate && pastRate
-        ? "Empty, so using " + money(pastRate) + " from your past deal (step 2)."
-        : "Your own rate, not a market average.";
       let audience = null;
-      if (views && rate) {
-        audience = views / 1000 * rate;
-        $("out-audience").innerHTML = count(views) + " views ÷ 1,000 × " + money(rate) + " = <strong>" + money(audience) + "</strong>";
+      if (past && pastViews && views) {
+        audience = Math.round(past * views / pastViews);
+        $("out-audience").innerHTML = count(views) + " ÷ " + count(pastViews) + " views × " + money(past) + " = <strong>" + money(audience) + "</strong>";
+      } else if (past && pastViews) {
+        $("out-audience").textContent = "Fill in your typical views now.";
       } else {
-        $("out-audience").textContent = "Fill in views and a rate, or a past deal with views.";
+        $("out-audience").textContent = "Needs a past deal with its views (step 2).";
       }
 
-      // --- Result: effort is the floor, a bigger audience pushes the price up ---
+      // --- Result: effort is the floor; past deal (scaled to today's views) can push it up ---
       if (effort === null) {
         $("prices").hidden = true;
         $("result").classList.add("empty");
         $("range").textContent = "Fill in your effort (step 1) to start.";
         $("advice").textContent = "";
-        $("compare").textContent = "";
         return;
       }
       $("result").classList.remove("empty");
       $("prices").hidden = false;
-      const ask = Math.max(effort, audience || 0, past || 0);
+      const market = audience !== null ? audience : past;   // what brands pay you today
+      const ask = Math.max(effort, market || 0);
       $("ask").textContent = money(ask);
       $("floor").textContent = money(effort);
 
       let tip;
-      if (past && ask === past && past > Math.max(effort, audience || 0)) tip = "Your last deal paid more than your other numbers, so ask for at least that again, unless this job is smaller.";
-      else if (audience === null) tip = "For now your price is your effort. Add your audience (step 3) to see if you can ask for more.";
-      else if (audience > effort) tip = "Your audience is worth more than your work costs, so ask for the audience price. A brand can check it: "
-        + count(views) + " views ÷ 1,000 × " + money(rate) + ".";
-      else tip = "Your audience alone would justify " + money(audience) + ". Ask for your effort price and explain the work behind it: idea, filming, editing.";
+      if (market === null) tip = "Your price is your effort for now. After your first deal, add it in step 2 to see if you can ask for more.";
+      else if (market <= effort) tip = "Your work costs more than brands have paid you so far, so ask for your effort price and explain the work behind it: idea, filming, editing.";
+      else if (audience === null) tip = "Brands already paid you " + money(past) + ", so ask for at least that again, unless this job is smaller.";
+      else if (views > pastViews) tip = "Your views grew " + Math.round((views / pastViews - 1) * 100) + "% since your last deal, so your price grows with them.";
+      else if (views < pastViews) tip = "Your views are lower than at your last deal, so this is what that deal is worth today.";
+      else tip = "Same views as your last deal, so the same price.";
       $("advice").textContent = tip;
-
-      let cmp = "";
-      if (past && ask > past) {
-        const r = ask / past;
-        cmp = r >= 2
-          ? "That's " + (Math.round(r * 10) / 10) + "× your last deal (" + money(past) + "). Big jump: be ready to explain what changed."
-          : "That's " + Math.round((r - 1) * 100) + "% more than your last deal (" + money(past) + ").";
-      }
-      $("compare").textContent = cmp;
     }
 
     // Restore what the visitor typed last time, and save on every change
-    ["currency", "hours", "hourly", "costs", "past", "pastviews", "views", "rate"].forEach((id) => {
+    ["currency", "hours", "hourly", "costs", "past", "pastviews", "views"].forEach((id) => {
       const saved = load(id);
       if (saved !== null) $(id).value = saved;
       $(id).addEventListener("input", () => { save(id, $(id).value); update(); });
