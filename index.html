@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Calculator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%23006aff'/><text x='16' y='22' font-size='17' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'>%25</text></svg>">
+  <meta name="description" content="Work out your sponsorship price from your own rate per 1,000 views, or find your rate from a past deal.">
+  <meta property="og:title" content="Rate Calculator | Price your sponsorships">
+  <meta property="og:description" content="Turn your own rate per 1,000 views into a price, or find your rate from a past deal. Free, no sign-up.">
+  <meta property="og:url" content="https://chikhladzesaba.github.io/rate-calculator/">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+
+  <!-- ============ CSS: how the page LOOKS ============ -->
+  <style>
+    /* Design tokens: the shared Creator Desk colours */
+    :root {
+      --ink: #1a1b22;
+      --accent: #006aff;
+      --border: #c5dcf0;
+      --badge: #f7fbff;
+      --line: #e6e7eb;
+      --muted: #5b6070;
+      --sans: "Inter Tight", system-ui, sans-serif;
+      --serif: "Instrument Serif", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0; background: #ffffff; color: var(--ink);
+      font-family: var(--sans); letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Full screen on phones, a card on bigger screens */
+    .app { max-width: 520px; margin: 0 auto; padding: 28px 20px 32px; display: flex; flex-direction: column; gap: 22px; }
+    @media (min-width: 600px) {
+      body { background: var(--badge); }
+      .app { margin: 40px auto 0; background: #ffffff; border: 1px solid var(--border); border-radius: 20px; padding: 32px 28px; }
+    }
+
+    h1 { margin: 0; font-size: 32px; font-weight: 400; line-height: 1.1; }
+    h1 em { font-family: var(--serif); font-size: 36px; }
+    .intro { margin: 8px 0 0; font-size: 16px; line-height: 1.45; color: var(--muted); }
+
+    /* Two tabs (pill switch) */
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--badge); border: 1px solid var(--border); border-radius: 999px; padding: 4px; }
+    .tabs button {
+      height: 42px; border: 0; border-radius: 999px; background: transparent;
+      font: 500 15px var(--sans); color: var(--muted); cursor: pointer;
+    }
+    .tabs button.on { background: var(--accent); color: #ffffff; font-weight: 600; }
+
+    .mode { display: flex; flex-direction: column; gap: 18px; }
+
+    /* Form fields */
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-weight: 600; font-size: 15px; letter-spacing: 0; }
+    .row { display: grid; grid-template-columns: 1fr 110px; gap: 8px; }
+    input, select {
+      height: 54px; width: 100%; padding: 0 16px;
+      font: 16px var(--sans); color: var(--ink);
+      border: 1px solid var(--border); border-radius: 14px; background: #ffffff;
+    }
+    select {
+      appearance: none; -webkit-appearance: none; padding-right: 36px; cursor: pointer;
+      background: #ffffff url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23006aff' stroke-width='2' stroke-linecap='round'/></svg>") no-repeat right 14px center / 12px 8px;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 106, 255, .12); }
+    .hint { font-size: 14px; color: var(--muted); line-height: 1.4; margin: 0; }
+
+    /* Result box */
+    .result { border: 1.5px solid var(--accent); background: var(--badge); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+    .result .small { font-size: 14px; color: var(--muted); }
+    .result .big { font-size: 34px; font-weight: 600; color: var(--accent); line-height: 1.1; }
+    .result .maths { font-size: 14px; color: #3d3f48; line-height: 1.5; }
+    .result.empty .big { color: var(--muted); font-weight: 400; font-size: 18px; }
+    .btn {
+      align-self: flex-start; margin-top: 8px; height: 40px; padding: 0 18px;
+      border: 1px solid var(--accent); border-radius: 999px; background: #ffffff;
+      color: var(--accent); font: 600 14px var(--sans); cursor: pointer;
+    }
+
+    /* "Where do I find this?" boxes: open and close without JavaScript */
+    details.learn { border: 1px solid var(--border); background: var(--badge); border-radius: 14px; padding: 0 16px; }
+    details.learn summary {
+      cursor: pointer; list-style: none; padding: 14px 0; font-weight: 600; font-size: 15px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    }
+    details.learn summary::-webkit-details-marker { display: none; }
+    details.learn summary::after { content: "+"; font-size: 22px; font-weight: 400; color: var(--accent); line-height: 1; }
+    details.learn[open] summary::after { content: "–"; }
+    details.learn .body { padding: 0 0 16px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.45; color: #3d3f48; }
+    details.learn p { margin: 0; }
+    details.learn ol, details.learn ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+
+    footer { max-width: 520px; margin: 24px auto 0; padding: 16px 20px 32px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.8; color: var(--muted); }
+    footer a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    footer a.plain { color: var(--ink); font-weight: 400; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div>
+      <h1>Rate <em>Calculator</em></h1>
+      <p class="intro">Got a sponsor email and don't know what number to reply with? Use your own rate per 1,000 views to get a price. No rate yet? Find it from a past deal.</p>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button type="button" id="tab-price" class="on" role="tab">Price a deal</button>
+      <button type="button" id="tab-rate" role="tab">Find my rate</button>
+    </div>
+
+    <!-- ===== Mode 1: rate → price ===== -->
+    <section class="mode" id="mode-price">
+      <div class="field">
+        <label for="rate">Your rate per 1,000 views</label>
+        <div class="row">
+          <input id="rate" inputmode="decimal" placeholder="e.g. 20" autocomplete="off">
+          <select id="currency" aria-label="Currency">
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+            <option value="GEL">₾ GEL</option>
+          </select>
+        </div>
+        <p class="hint">This is your number, not a market average. Don't know it? Use "Find my rate" above.</p>
+      </div>
+
+      <div class="field">
+        <label for="views">Typical views per video</label>
+        <input id="views" inputmode="numeric" placeholder="e.g. 25,000" autocomplete="off">
+        <p class="hint">Views of one normal video, not your yearly total.</p>
+      </div>
+
+      <div class="field">
+        <label for="videos">Videos in this deal</label>
+        <input id="videos" inputmode="numeric" value="1" autocomplete="off">
+      </div>
+
+      <div class="result empty" id="price-result" aria-live="polite">
+        <span class="small" id="price-label">Your price</span>
+        <span class="big" id="price-big">Fill in your rate and views</span>
+        <span class="maths" id="price-maths"></span>
+      </div>
+
+      <details class="learn">
+        <summary>How do I find my typical views?</summary>
+        <div class="body">
+          <p>Sponsors pay for the people who see <strong>their</strong> video, so you need the views of one normal video.</p>
+          <ol>
+            <li>Open your stats (on YouTube: YouTube Studio → Content, the Views column).</li>
+            <li>Write down the views of your last 9 videos. Skip very new ones that are still growing.</li>
+            <li>Put them in order, smallest to biggest, and take the <strong>middle one</strong> (the 5th).</li>
+          </ol>
+          <p>Why the middle and not the average? One viral video pulls the average up, and a sponsor will judge you by your normal videos. The middle number (the "median") ignores the one-off hit.</p>
+        </div>
+      </details>
+
+      <details class="learn">
+        <summary>Why not my yearly views?</summary>
+        <div class="body">
+          <p>1.3M views in a year sounds big, but the sponsor's ad appears in one video. If you posted 52 videos, that's about 25,000 views per video, and that's the number they pay for.</p>
+          <p>Yearly views ÷ number of videos gives you a rough average. The middle-video method above is more honest.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===== Mode 2: past deal → rate ===== -->
+    <section class="mode" id="mode-rate" hidden>
+      <div class="field">
+        <label for="paid">What a sponsor paid you</label>
+        <div class="row">
+          <input id="paid" inputmode="decimal" placeholder="e.g. 500" autocomplete="off">
+          <select id="currency2" aria-label="Currency">
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+            <option value="GEL">₾ GEL</option>
+          </select>
+        </div>
+        <p class="hint">The price for one sponsored video.</p>
+      </div>
+
+      <div class="field">
+        <label for="dealviews">Views of that video</label>
+        <input id="dealviews" inputmode="numeric" placeholder="e.g. 25,000" autocomplete="off">
+        <p class="hint">Check it once the video is a few weeks old.</p>
+      </div>
+
+      <div class="result empty" id="rate-result" aria-live="polite">
+        <span class="small">Your rate per 1,000 views</span>
+        <span class="big" id="rate-big">Fill in the price and views</span>
+        <span class="maths" id="rate-maths"></span>
+        <button type="button" class="btn" id="use-rate" hidden>Use this rate →</button>
+      </div>
+
+      <details class="learn">
+        <summary>No past deals yet?</summary>
+        <div class="body">
+          <p>If you're in the YouTube Partner Program, check your <strong>RPM</strong> in YouTube Studio → Analytics → Revenue. RPM is what YouTube pays you per 1,000 views from ads.</p>
+          <p>A sponsor usually pays more than that, because their message is part of your video. Treat your RPM as a minimum, not a target.</p>
+        </div>
+      </details>
+
+      <details class="learn">
+        <summary>Several past deals?</summary>
+        <div class="body">
+          <p>Work out the rate for each one, then compare. Use the most recent, or the middle one if they're very different. Your rate is a decision, not a law: you can raise it as your channel grows.</p>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    Built by Saba · Help with growth &amp; monetization? <a href="https://www.linkedin.com/in/sabachikhladze/" target="_blank" rel="noopener">Let’s talk →</a> · Part of <a class="plain" href="https://chikhladzesaba.github.io/creator-tools/" target="_blank" rel="noopener">Creator Desk</a><br>
+    ☕ Support this tool: <a href="https://ko-fi.com/creatordesk" target="_blank" rel="noopener">Ko-fi</a> · <a href="https://www.kisa.ge/donate/s8yqx0zb6j" target="_blank" rel="noopener">Kisa (₾)</a><br>
+    Results are simple maths from your own numbers, not advice. What you type never leaves your browser.
+  </footer>
+
+  <!-- ============ JavaScript: how the page WORKS ============ -->
+  <script>
+    // Every saved key starts with "ratecalc:" so we never touch other tools' data.
+    const KEY = "ratecalc:";
+    const $ = (id) => document.getElementById(id);
+    const save = (name, value) => { try { localStorage.setItem(KEY + name, value); } catch (e) {} };
+    const load = (name) => { try { return localStorage.getItem(KEY + name); } catch (e) { return null; } };
+
+    // Read money typed as "20", "12.5", "12,5" or "1,200.50"
+    function readMoney(text) {
+      let t = String(text).replace(/[\s$€₾]/g, "");
+      if (t.includes(".") && t.includes(",")) t = t.replace(/,/g, "");
+      else if (/^\d+,\d{1,2}$/.test(t)) t = t.replace(",", ".");
+      else t = t.replace(/,/g, "");
+      const n = parseFloat(t);
+      return n > 0 ? n : null;
+    }
+    // Views and video counts: keep only the digits ("25,000" → 25000)
+    function readCount(text) {
+      const n = parseInt(String(text).replace(/\D/g, ""), 10);
+      return n > 0 ? n : null;
+    }
+    // Money: "$1,000", "€12.50", "800 ₾" (no ".00" on round amounts)
+    function money(n, cur) {
+      const digits = Number.isInteger(Math.round(n * 100) / 100) ? 0 : 2;
+      const num = new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: 2 }).format(n);
+      return cur === "GEL" ? num + " ₾" : (cur === "EUR" ? "€" : "$") + num;
+    }
+    const count = (n) => new Intl.NumberFormat("en-US").format(n);
+
+    // ---- Mode 1: rate → price ----
+    function priceDeal() {
+      const rate = readMoney($("rate").value);
+      const views = readCount($("views").value);
+      const videos = readCount($("videos").value) || 1;
+      const cur = $("currency").value;
+      const box = $("price-result");
+      if (!rate || !views) {
+        box.classList.add("empty");
+        $("price-label").textContent = "Your price";
+        $("price-big").textContent = "Fill in your rate and views";
+        $("price-maths").textContent = "";
+        return;
+      }
+      const perVideo = views / 1000 * rate;
+      box.classList.remove("empty");
+      $("price-label").textContent = videos > 1 ? "Total for " + videos + " videos" : "Your price for 1 video";
+      $("price-big").textContent = money(perVideo * videos, cur);
+      $("price-maths").textContent = count(views) + " views ÷ 1,000 × " + money(rate, cur) + " = " + money(perVideo, cur) + " per video"
+        + (videos > 1 ? " · × " + videos + " videos" : "");
+    }
+
+    // ---- Mode 2: past deal → rate ----
+    let foundRate = null;
+    function findRate() {
+      const paid = readMoney($("paid").value);
+      const views = readCount($("dealviews").value);
+      const cur = $("currency2").value;
+      const box = $("rate-result");
+      if (!paid || !views) {
+        box.classList.add("empty");
+        $("rate-big").textContent = "Fill in the price and views";
+        $("rate-maths").textContent = "";
+        $("use-rate").hidden = true;
+        foundRate = null;
+        return;
+      }
+      foundRate = Math.round(paid / (views / 1000) * 100) / 100;
+      box.classList.remove("empty");
+      $("rate-big").textContent = money(foundRate, cur);
+      $("rate-maths").textContent = money(paid, cur) + " ÷ (" + count(views) + " views ÷ 1,000) = " + money(foundRate, cur) + " per 1,000 views";
+      $("use-rate").hidden = false;
+    }
+
+    // ---- Tabs ----
+    function showTab(name) {
+      $("mode-price").hidden = name !== "price";
+      $("mode-rate").hidden = name !== "rate";
+      $("tab-price").classList.toggle("on", name === "price");
+      $("tab-rate").classList.toggle("on", name === "rate");
+      save("tab", name);
+    }
+    $("tab-price").addEventListener("click", () => showTab("price"));
+    $("tab-rate").addEventListener("click", () => showTab("rate"));
+
+    // "Use this rate" copies the found rate into mode 1
+    $("use-rate").addEventListener("click", () => {
+      if (foundRate === null) return;
+      $("rate").value = foundRate;
+      $("currency").value = $("currency2").value;
+      save("rate", $("rate").value); save("currency", $("currency").value);
+      priceDeal();
+      showTab("price");
+      $("views").focus();
+    });
+
+    // Restore what the visitor typed last time, and save on every change
+    ["rate", "currency", "views", "videos", "paid", "currency2", "dealviews"].forEach((id) => {
+      const saved = load(id);
+      if (saved !== null) $(id).value = saved;
+      $(id).addEventListener("input", () => { save(id, $(id).value); priceDeal(); findRate(); });
+    });
+    showTab(load("tab") === "rate" ? "rate" : "price");
+    priceDeal();
+    findRate();
+  </script>
+</body>
+</html>
